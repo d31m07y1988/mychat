@@ -8,16 +8,13 @@ import java.net.Socket;
  */
 public class Client{
 
-    private BufferedReader dataFromServer;
-    private BufferedWriter dataToServer;
     private Socket socket;
+    private Connection connection;
 
     public Client() {
         try {
             socket = new Socket("localhost", Server.chatPort);
-            dataFromServer = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            dataToServer = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
-
+            connection = new Connection(socket);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -28,22 +25,16 @@ public class Client{
         try{
             Client client = new Client();
 
+            KeyboardReader.writeString("Enter your username");
+            client.connection.send(KeyboardReader.readString());
             Resender resender = client.new Resender();
+            resender.setDaemon(true);
             resender.start();
-
-            KeyboardReader.writeString("Enter your name");
-            client.dataToServer.write(KeyboardReader.readString());
-            client.dataToServer.newLine();
-            client.dataToServer.flush();
-
-
 
             String message="";
             while (!"exit".equalsIgnoreCase(message)){
                 message= KeyboardReader.readString();
-                client.dataToServer.write(message);
-                client.dataToServer.newLine();
-                client.dataToServer.flush();
+                client.connection.send(message);
             }
             resender.setStop();
 
@@ -64,9 +55,8 @@ public class Client{
         public void run() {
             try {
                 while (!stoped) {
-
-                    String str = dataFromServer.readLine();
-                    KeyboardReader.writeString(str);
+                    String serverMessage = connection.receive();
+                    KeyboardReader.writeString(serverMessage);
                 }
             } catch (IOException e) {
                 e.printStackTrace();

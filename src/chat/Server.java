@@ -4,6 +4,8 @@ import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.logging.Logger;
 
@@ -11,9 +13,9 @@ import java.util.logging.Logger;
  * Created by Ramil on 30.11.2016.
  */
 public class Server {
-    protected static final int chatPort = 13666;
-    protected static Logger logger = Logger.getLogger(Server.class.getSimpleName());
-    private static List<Connection> connectedClients = new CopyOnWriteArrayList<Connection>();
+    public static final int chatPort = 13666;
+    static Logger logger = Logger.getLogger(Server.class.getSimpleName());
+    private static Map<String, Connection> connectedClients = new ConcurrentHashMap<>();
 
     public static void main(String[] args) {
         Server server = new Server();
@@ -22,10 +24,8 @@ public class Server {
             while (true) {
                 Socket socket = clientListener.accept();
                 logger.info("Client connect");
-                Connection connection = server.new Connection(socket);
-                connection.start();
-                connectedClients.add(connection);
-                logger.info("Total count of client:" + connectedClients.size());
+                incomeClients newClient = server.new incomeClients(socket);
+                newClient.start();
             }
 
         } catch (Exception e) {
@@ -34,60 +34,51 @@ public class Server {
     }
 
 
-    private class Connection extends Thread {
-        private Socket socket;
-        private String clientName;
-        private BufferedReader dataFromClient;
-        private BufferedWriter dataToClient;
+    private class incomeClients extends Thread {
+        private final Socket socket;
 
-
-        public Connection(Socket socket) {
+        public incomeClients(Socket socket) {
             this.socket = socket;
-            try {
-                dataFromClient = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-                dataToClient = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
         }
 
         @Override
         public void run() {
-            try {
-                clientName = dataFromClient.readLine();
+            try (Connection connection = new Connection(socket)) {
 
-                for (Connection connectedClient : connectedClients) {
-                    connectedClient.dataToClient.write(clientName + " - connected to chat\n");
-                }
+                String clientName = serverHandshake(connection);
 
-                String clientMessage="";
+                String clientMessage = "";
                 while (true) {
-                    clientMessage = dataFromClient.readLine();
+                    clientMessage = connection.receive();
                     logger.info(clientMessage);
                     if (clientMessage.equalsIgnoreCase("exit")) break;
-
-                    for (Connection connectedClient : connectedClients) {
-                        connectedClient.dataToClient.write(clientName + ": " + clientMessage);
-                    }
+                    sendAll(clientName+": " +clientMessage);
                 }
 
-                for (Connection connectedClient : connectedClients) {
-                    connectedClient.dataToClient.write(clientName + " - left chat");
-                }
+                sendAll(clientName+" покинул чат");
 
             } catch (Exception e) {
                 e.printStackTrace();
-            } finally {
-                connectedClients.remove(this);
-                try {
-                    dataToClient.close();
-                    dataFromClient.close();
-                    socket.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
             }
 
+        }
+
+        private String serverHandshake(Connection connection) throws IOException {
+            logger.info("запрос имени");
+            String userName = connection.receive();
+            connectedClients.put(userName, connection);
+            sendAll(userName + " присоединился к чату");
+            return userName;
+        }
+
+        private void sendAll(String message) {
+            for (Connection connection : connectedClients.values()) {
+                try {
+                    connection.send(message);
+                } catch (IOException e) {
+                    System.out.println("Сообщение не было разослано");
+                }
+            }
         }
     }
 }
