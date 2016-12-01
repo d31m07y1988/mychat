@@ -20,43 +20,34 @@ public class Client{
         }
     }
 
-
     public static void main(String[] args) {
-        try{
+        try(BufferedReader keyboardReader = new BufferedReader(new InputStreamReader(System.in))){
             Client client = new Client();
 
-            KeyboardReader.writeString("Enter your username");
-            client.connection.send(KeyboardReader.readString());
-            Resender resender = client.new Resender();
-            resender.setDaemon(true);
-            resender.start();
+            ServerMessageGetter messageGetter = client.new ServerMessageGetter();
+            messageGetter.setDaemon(true);
+            messageGetter.start();
 
+            System.out.println("Enter your username");
             String message="";
             while (!"exit".equalsIgnoreCase(message)){
-                message= KeyboardReader.readString();
+                message= keyboardReader.readLine();
                 client.connection.send(message);
             }
-            resender.setStop();
 
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    private class Resender extends Thread {
-
-        private boolean stoped;
-
-        public void setStop() {
-            stoped = true;
-        }
+    private class ServerMessageGetter extends Thread {
 
         @Override
         public void run() {
             try {
-                while (!stoped) {
+                while (true) {
                     String serverMessage = connection.receive();
-                    KeyboardReader.writeString(serverMessage);
+                    System.out.println(serverMessage);
                 }
             } catch (IOException e) {
                 e.printStackTrace();
