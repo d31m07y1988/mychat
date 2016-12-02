@@ -32,7 +32,8 @@ public class Server {
     }
 
     private class incomeClients extends Thread {
-        private final Socket socket;
+        private Socket socket;
+        private boolean authorized = true;
 
         public incomeClients(Socket socket) {
             this.socket = socket;
@@ -41,19 +42,16 @@ public class Server {
         @Override
         public void run() {
             try (Connection connection = new Connection(socket)) {
-
                 String clientName = serverHandshake(connection);
-
-                String clientMessage = "";
-                while (true) {
-                    clientMessage = connection.receive();
+                while (authorized) {
+                    String clientMessage = connection.receive();
                     logger.info(clientMessage);
                     if (clientMessage.equalsIgnoreCase("exit")) {
                         connectedClients.remove(clientName);
-                        sendAll(clientName+" покинул чат");
+                        sendAll(clientName + " покинул чат");
                         break;
                     }
-                    sendAll(clientName+": " +clientMessage);
+                    sendAll(clientName + ": " + clientMessage);
                 }
 
             } catch (Exception e) {
@@ -65,12 +63,15 @@ public class Server {
         private String serverHandshake(Connection connection) throws IOException {
             logger.info("запрос имени");
             String userName = connection.receive();
-            while (connectedClients.containsKey(userName)){
+            while (connectedClients.containsKey(userName)) {
                 connection.send("Пользователь с таким именем уже существует. Введите другое имя.");
                 userName = connection.receive();
             }
-            connectedClients.put(userName, connection);
-            sendAll(userName + " присоединился к чату");
+            if (!userName.equalsIgnoreCase("exit")) {
+                connectedClients.put(userName, connection);
+                sendAll(userName + " присоединился к чату");
+            } else
+                authorized = false;
             return userName;
         }
 

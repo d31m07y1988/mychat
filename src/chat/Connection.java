@@ -6,36 +6,27 @@ import java.net.Socket;
 /**
  * Created by Ramil on 01.12.2016.
  */
-public class Connection implements Closeable{
+public class Connection implements Closeable {
 
-    private final Socket socket;
-    private final BufferedReader incomeData;
-    private final BufferedWriter outcomeData;
+    private Socket socket;
+    private BufferedReader incomeData;
+    private BufferedWriter outcomeData;
 
-    public Connection(Socket socket) {
+    public Connection(Socket socket) throws IOException {
         this.socket = socket;
-        InputStream socketInStream=null;
-        OutputStream socketOutStream=null;
-        try {
-            socketInStream = socket.getInputStream();
-            socketOutStream = socket.getOutputStream();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        incomeData = new BufferedReader(new InputStreamReader(socketInStream));
-        outcomeData = new BufferedWriter(new OutputStreamWriter(socketOutStream));
+        incomeData = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+        outcomeData = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
     }
 
     public void send(String message) throws IOException {
-        synchronized (outcomeData)
-        {
-            outcomeData.write(message+"\n");
+        synchronized (outcomeData) {
+            outcomeData.write(message + "\n");
             outcomeData.flush();
         }
     }
+
     public String receive() throws IOException {
-        synchronized (incomeData)
-        {
+        synchronized (incomeData) {
             return incomeData.readLine();
         }
     }

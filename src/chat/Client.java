@@ -6,7 +6,7 @@ import java.net.Socket;
 /**
  * Created by Ramil on 30.11.2016.
  */
-public class Client{
+public class Client {
 
     private Socket socket;
     private Connection connection;
@@ -21,17 +21,16 @@ public class Client{
     }
 
     public static void main(String[] args) {
-        try(BufferedReader keyboardReader = new BufferedReader(new InputStreamReader(System.in))){
-            Client client = new Client();
+        Client client = new Client();
+        ServerMessageGetter messageGetter = client.new ServerMessageGetter();
+        messageGetter.setDaemon(true);
+        messageGetter.start();
 
-            ServerMessageGetter messageGetter = client.new ServerMessageGetter();
-            messageGetter.setDaemon(true);
-            messageGetter.start();
-
-            System.out.println("Enter your username");
-            String message="";
-            while (!"exit".equalsIgnoreCase(message)){
-                message= keyboardReader.readLine();
+        System.out.println("Enter your username");
+        try (BufferedReader keyboardReader = new BufferedReader(new InputStreamReader(System.in))) {
+            String message = "";
+            while (!"exit".equalsIgnoreCase(message)) {
+                message = keyboardReader.readLine();
                 client.connection.send(message);
             }
 
@@ -47,7 +46,8 @@ public class Client{
             try {
                 while (true) {
                     String serverMessage = connection.receive();
-                    System.out.println(serverMessage);
+                    if (serverMessage != null)
+                        System.out.println(serverMessage);
                 }
             } catch (IOException e) {
                 e.printStackTrace();
