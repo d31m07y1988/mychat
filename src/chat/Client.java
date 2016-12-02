@@ -8,12 +8,14 @@ import java.net.Socket;
  */
 public class Client {
 
+    private int serverPort;
     private Socket socket;
     private Connection connection;
 
-    public Client() {
+    public Client(int port) {
+        serverPort = port;
         try {
-            socket = new Socket("localhost", Server.chatPort);
+            socket = new Socket("localhost", serverPort);
             connection = new Connection(socket);
         } catch (Exception e) {
             e.printStackTrace();
@@ -21,7 +23,7 @@ public class Client {
     }
 
     public static void main(String[] args) {
-        Client client = new Client();
+        Client client = new Client(13666);
         ServerMessageGetter messageGetter = client.new ServerMessageGetter();
         messageGetter.setDaemon(true);
         messageGetter.start();

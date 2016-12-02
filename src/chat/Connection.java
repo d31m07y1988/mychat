@@ -8,7 +8,7 @@ import java.net.Socket;
  */
 public class Connection implements Closeable {
 
-    private Socket socket;
+    private final Socket socket;
     private BufferedReader incomeData;
     private BufferedWriter outcomeData;
 

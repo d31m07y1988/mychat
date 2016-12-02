@@ -11,13 +11,17 @@ import java.util.logging.Logger;
  * Created by Ramil on 30.11.2016.
  */
 public class Server {
-    public static final int chatPort = 13666;
+    public final int serverPort;
     private static Logger logger = Logger.getLogger(Server.class.getSimpleName());
-    private static Map<String, Connection> connectedClients = new ConcurrentHashMap<>();
+    private Map<String, Connection> connectedClients = new ConcurrentHashMap<>();
+
+    public Server(int port) {
+        serverPort = port;
+    }
 
     public static void main(String[] args) {
-        Server server = new Server();
-        try (ServerSocket clientListener = new ServerSocket(Server.chatPort)) {
+        Server server = new Server(13666);
+        try (ServerSocket clientListener = new ServerSocket(server.serverPort)) {
             logger.info("Сервер стартовал");
             while (true) {
                 Socket socket = clientListener.accept();
