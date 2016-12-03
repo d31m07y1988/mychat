@@ -3,6 +3,7 @@ package chat;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
@@ -58,7 +59,9 @@ public class Server {
                     sendAll(clientName + ": " + clientMessage);
                 }
 
-            } catch (Exception e) {
+            } catch (SocketException e) {
+                System.err.println("связь с клиентом утеряна");
+            } catch (IOException e) {
                 e.printStackTrace();
             }
 
@@ -80,12 +83,18 @@ public class Server {
         }
 
         private void sendAll(String message) throws IOException {
-            for (Connection connection : connectedClients.values()) {
+            for (Map.Entry<String, Connection> clientConnection : connectedClients.entrySet()) {
                 try {
-                    connection.send(message);
+                    clientConnection.getValue().send(message);
                 } catch (IOException e) {
-                    System.err.println("Сообщение не было разослано");
+                    if(e.getMessage().equals("Stream closed")) {
+                        clientConnection.getValue().close();
+                        connectedClients.remove(clientConnection.getKey());
+                    } else {
+                        System.err.println("Сообщение не было разослано");
+                    }
                 }
+
             }
         }
     }
