@@ -26,7 +26,7 @@ public class Server {
             logger.info("Сервер стартовал");
             while (true) {
                 Socket socket = clientListener.accept();
-                logger.info("Client connect");
+                logger.info("Соединение с клиентом установлено");
                 incomeClients newClient = server.new incomeClients(socket);
                 newClient.start();
             }
@@ -46,8 +46,9 @@ public class Server {
 
         @Override
         public void run() {
+            String clientName = null;
             try (Connection connection = new Connection(socket)) {
-                String clientName = serverHandshake(connection);
+                clientName = serverHandshake(connection);
                 while (authorized) {
                     String clientMessage = connection.receive();
                     logger.info(clientMessage);
@@ -60,7 +61,10 @@ public class Server {
                 }
 
             } catch (SocketException e) {
-                System.err.println("связь с клиентом утеряна");
+                System.err.println("Связь с клиентом утеряна");
+                if(clientName!=null) {
+                    connectedClients.remove(clientName);
+                }
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -68,7 +72,7 @@ public class Server {
         }
 
         private String serverHandshake(Connection connection) throws IOException {
-            logger.info("запрос имени");
+            logger.info("Запрос имени");
             String userName = connection.receive();
             while (connectedClients.containsKey(userName)) {
                 connection.send("Пользователь с таким именем уже существует. Введите другое имя.");
@@ -82,17 +86,12 @@ public class Server {
             return userName;
         }
 
-        private void sendAll(String message) throws IOException {
+        private void sendAll(String message) {
             for (Map.Entry<String, Connection> clientConnection : connectedClients.entrySet()) {
                 try {
                     clientConnection.getValue().send(message);
                 } catch (IOException e) {
-                    if(e.getMessage().equals("Stream closed")) {
-                        clientConnection.getValue().close();
-                        connectedClients.remove(clientConnection.getKey());
-                    } else {
-                        System.err.println("Сообщение не было разослано");
-                    }
+                    System.err.println("Сообщение не было разослано");
                 }
 
             }

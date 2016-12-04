@@ -4,43 +4,45 @@ import java.io.*;
 import java.net.Socket;
 import java.net.SocketException;
 
+import static java.lang.Thread.sleep;
+
 /**
  * Created by Ramil on 30.11.2016.
  */
 public class Client {
 
-    private int serverPort;
-    private Socket socket;
-    private Connection connection;
-
-    public Client(int port) throws IOException {
-        serverPort = port;
-        socket = new Socket("localhost", serverPort);
-        connection = new Connection(socket);
-    }
-
     public static void main(String[] args) {
-        try (BufferedReader keyboardReader = new BufferedReader(new InputStreamReader(System.in))) {
-            Client client = new Client(13666);
-            ServerMessageGetter messageGetter = client.new ServerMessageGetter();
+        Client client = new Client();
+
+        try (Socket socket = new Socket("localhost", 13666);
+             Connection connection = new Connection(socket);
+             BufferedReader keyboardReader = new BufferedReader(new InputStreamReader(System.in))) {
+
+            ServerMessageGetter messageGetter = client.new ServerMessageGetter(connection);
             messageGetter.setDaemon(true);
             messageGetter.start();
 
-            System.out.println("Enter your username");
+            System.out.println("Введите имя");
             String message = "";
             while (!"exit".equalsIgnoreCase(message)) {
                 message = keyboardReader.readLine();
-                client.connection.send(message);
+                connection.send(message);
             }
+            sleep(10);
         } catch (SocketException e) {
             System.err.println("связь с сервером утеряна1");
-
-        } catch (IOException e) {
+        } catch (IOException | InterruptedException e) {
             e.printStackTrace();
         }
     }
 
     private class ServerMessageGetter extends Thread {
+
+        private Connection connection;
+
+        public ServerMessageGetter(Connection connection) {
+            this.connection = connection;
+        }
 
         @Override
         public void run() {
