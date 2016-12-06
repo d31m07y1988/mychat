@@ -6,7 +6,7 @@ import java.net.Socket;
 /**
  * Created by Ramil on 01.12.2016.
  */
-public class Connection implements Closeable {
+public class Connection implements AutoCloseable {
 
     private final Socket socket;
     private BufferedReader incomeData;
