@@ -52,9 +52,10 @@ public class Server {
                 while (authorized) {
                     String clientMessage = connection.receive();
                     logger.info(clientMessage);
-                    if (clientMessage.equalsIgnoreCase("exit")) {
+                    if (clientMessage==null || clientMessage.equalsIgnoreCase("exit")) {
                         connectedClients.remove(clientName);
                         sendAll(clientName + " покинул чат");
+                        logger.info(clientName + " покинул чат");
                         break;
                     }
                     sendAll(clientName + ": " + clientMessage);
@@ -74,26 +75,27 @@ public class Server {
         private String serverHandshake(Connection connection) throws IOException {
             logger.info("Запрос имени");
             String userName = connection.receive();
-            while (connectedClients.containsKey(userName)) {
+            while (userName!=null && connectedClients.containsKey(userName)) {
                 connection.send("Пользователь с таким именем уже существует. Введите другое имя.");
                 userName = connection.receive();
             }
-            if (!userName.equalsIgnoreCase("exit")) {
+            if (userName!=null && !userName.equalsIgnoreCase("exit")) {
                 connectedClients.put(userName, connection);
                 sendAll(userName + " присоединился к чату");
-            } else
+            } else {
                 authorized = false;
+                logger.info("Пользователь не авторизован");
+            }
             return userName;
         }
 
         private void sendAll(String message) {
-            for (Map.Entry<String, Connection> clientConnection : connectedClients.entrySet()) {
+            for (Connection connection : connectedClients.values()) {
                 try {
-                    clientConnection.getValue().send(message);
+                    connection.send(message);
                 } catch (IOException e) {
                     System.err.println("Сообщение не было разослано");
                 }
-
             }
         }
     }
