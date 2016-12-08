@@ -51,7 +51,6 @@ public class Server {
                 clientName = serverHandshake(connection);
                 while (authorized) {
                     String clientMessage = connection.receive();
-                    logger.info(clientMessage);
                     if (clientMessage==null || clientMessage.equalsIgnoreCase("exit")) {
                         connectedClients.remove(clientName);
                         sendAll(clientName + " покинул чат");
@@ -65,6 +64,7 @@ public class Server {
                 System.err.println("Связь с клиентом утеряна");
                 if(clientName!=null) {
                     connectedClients.remove(clientName);
+                    sendAll(clientName + " покинул чат");
                 }
             } catch (IOException e) {
                 e.printStackTrace();
@@ -81,6 +81,7 @@ public class Server {
             }
             if (userName!=null && !userName.equalsIgnoreCase("exit")) {
                 connectedClients.put(userName, connection);
+                logger.info("Пользователь авторизован");
                 sendAll(userName + " присоединился к чату");
             } else {
                 authorized = false;
